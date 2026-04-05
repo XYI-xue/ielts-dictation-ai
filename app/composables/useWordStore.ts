@@ -1,8 +1,30 @@
+import type { SpellingDiagnosisCategory } from '~/lib/diagnosticCore'
+import { persistErrorLogsToStorage } from '~/utils/errorLogsStorage'
+
 export interface WordEntry {
   word: string
   phonetic: string
   translation: string
   example_sentence: string
+}
+
+/** 可进入专项复习池的诊断类型（不含答对） */
+export type ErrorReviewCategory = Exclude<SpellingDiagnosisCategory, 'correct'>
+
+export interface ErrorLogEntry {
+  id: string
+  target: WordEntry
+  wrongInput: string
+  category: ErrorReviewCategory
+  /** 听写页写入时为 `dictation`；缺省视为历史数据仍展示在复习中 */
+  source?: 'dictation'
+  /** 听写提交错答时写入（ISO 8601） */
+  recordedAt?: string
+}
+
+/** 复习列表：仅听写产生的错题（及未带 source 的旧数据） */
+export function isDictationReviewEntry(e: ErrorLogEntry): boolean {
+  return e.source === 'dictation' || e.source === undefined
 }
 
 const MOCK_VOCABULARY: WordEntry[] = [
@@ -71,8 +93,48 @@ const MOCK_VOCABULARY: WordEntry[] = [
 
 export function useWordStore() {
   const words = useState<WordEntry[]>('word-store', () => [...MOCK_VOCABULARY])
+  const errorLogs = useState<ErrorLogEntry[]>('word-store:error-logs', () => [])
+
+  function syncErrorLogsToStorage() {
+    persistErrorLogsToStorage(errorLogs.value)
+  }
+
+  function removeErrorLog(id: string) {
+    errorLogs.value = errorLogs.value.filter((e) => e.id !== id)
+    syncErrorLogsToStorage()
+  }
+
+  function newErrorLogId(): string {
+    return typeof crypto !== 'undefined' && 'randomUUID' in crypto
+      ? crypto.randomUUID()
+      : `err-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`
+  }
+
+  function pushErrorLog(entry: Omit<ErrorLogEntry, 'id'>) {
+    errorLogs.value = [...errorLogs.value, { ...entry, id: newErrorLogId() }]
+    syncErrorLogsToStorage()
+  }
+
+  function normalizeWordKey(word: string): string {
+    return word.trim().toLowerCase()
+  }
+
+  /**
+   * 听写答错时写入/更新：同一目标词只保留一条，刷新错因与错拼。
+   * 听写里后来改对不会删除本条；移出复习池仅在 Review 完成专项（如 removeErrorLog）时进行。
+   */
+  function upsertErrorLog(entry: Omit<ErrorLogEntry, 'id'>) {
+    const key = normalizeWordKey(entry.target.word)
+    const without = errorLogs.value.filter((e) => normalizeWordKey(e.target.word) !== key)
+    errorLogs.value = [...without, { ...entry, id: newErrorLogId() }]
+    syncErrorLogsToStorage()
+  }
 
   return {
-    words
+    words,
+    errorLogs,
+    removeErrorLog,
+    pushErrorLog,
+    upsertErrorLog
   }
 }

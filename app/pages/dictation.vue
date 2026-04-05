@@ -16,7 +16,8 @@
           class="rounded border border-zinc-600 bg-zinc-800 px-1.5 py-0.5 font-mono text-xs text-zinc-200"
           >Enter</kbd
         >
-        提交。答错后会先短暂展示该词正确信息，再进入盲听写；也可随时点卡片
+        提交。答错会写入专项复习池；听写里后来改对也不会从池中移除，需在 Review
+        页完成巩固。答错后会先短暂展示该词正确信息，再进入盲听写；也可随时点卡片
         <span class="text-zinc-300">×</span>
         跳过本题。答对后会先展示完整词条至少数秒，之后才可按
         <kbd
@@ -39,12 +40,29 @@
         aria-hidden="true"
       />
 
-      <div v-if="roundComplete" class="relative z-10 py-10 text-center">
+      <div v-if="roundComplete" class="relative z-10 space-y-4 py-10 text-center">
         <p class="text-lg font-medium text-zinc-100">本轮听写已完成</p>
-        <p class="mt-2 text-sm text-zinc-400">可以稍后在 Dashboard 查看进度，或重新开始一轮。</p>
+        <p class="text-sm text-zinc-400">
+          可以稍后在 Dashboard 查看进度，或重新开始一轮。
+        </p>
+        <p
+          v-if="distinctWrongWordsThisRound > 0"
+          class="mx-auto max-w-sm rounded-xl border border-zinc-800/90 bg-zinc-900/50 px-4 py-3 text-sm leading-relaxed text-zinc-300"
+        >
+          本轮共有
+          <span class="font-semibold tabular-nums text-zinc-100">{{ distinctWrongWordsThisRound }}</span>
+          个词因拼写错误已同步至
+          <NuxtLink
+            to="/review"
+            class="font-medium text-violet-400 underline decoration-violet-500/40 underline-offset-2 hover:text-violet-300"
+          >
+            专项复习
+          </NuxtLink>
+          ，可按诊断分类巩固。
+        </p>
         <button
           type="button"
-          class="mt-6 rounded-xl border border-violet-500/40 bg-violet-950/40 px-5 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-900/50"
+          class="mt-2 rounded-xl border border-violet-500/40 bg-violet-950/40 px-5 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-900/50"
           @click="restartRound"
         >
           重新开始
@@ -297,15 +315,28 @@ import {
   DIAGNOSIS_SHORT_LABEL,
   type SpellingDiagnosisCategory
 } from '~/utils/diagnosticEngine'
-import type { WordEntry } from '~/composables/useWordStore'
+import type { ErrorReviewCategory, WordEntry } from '~/composables/useWordStore'
 
-const { words } = useWordStore()
+const { words, upsertErrorLog } = useWordStore()
 
 const currentIndex = ref(0)
 const answer = ref('')
 const isSpeaking = ref(false)
 const inputRef = ref<HTMLInputElement | null>(null)
 const roundComplete = ref(false)
+
+/** 本轮听写中至少答错过一次的词（按词形归一化去重），用于结束页摘要 */
+const wrongWordKeysThisRound = ref<Set<string>>(new Set())
+
+const distinctWrongWordsThisRound = computed(() => wrongWordKeysThisRound.value.size)
+
+function markWrongWordThisRound(word: string) {
+  const k = word.trim().toLowerCase()
+  if (wrongWordKeysThisRound.value.has(k)) return
+  const next = new Set(wrongWordKeysThisRound.value)
+  next.add(k)
+  wrongWordKeysThisRound.value = next
+}
 
 /** 答错后展示完整正确答案的时长，结束后进入盲听写 */
 const WRONG_REVEAL_MS = 3200
@@ -509,6 +540,7 @@ function submitAnswer() {
   answer.value = ''
 
   if (match) {
+    // 不在此从复习池删词：听写中改对只表示本轮过关，错题仍应在 Review 专项巩固
     correctManualUnlocked.value = false
     correctManualUnlockTimer = setTimeout(() => {
       correctManualUnlockTimer = null
@@ -519,6 +551,16 @@ function submitAnswer() {
       advanceAfterCorrect()
     }, CORRECT_AUTO_ADVANCE_MS)
   } else {
+    if (category !== 'correct') {
+      markWrongWordThisRound(w.word)
+      upsertErrorLog({
+        target: { ...w },
+        wrongInput: raw,
+        category: category as ErrorReviewCategory,
+        source: 'dictation',
+        recordedAt: new Date().toISOString()
+      })
+    }
     startWrongRevealPhase()
   }
 
@@ -532,6 +574,7 @@ function restartRound() {
   roundComplete.value = false
   currentIndex.value = 0
   answer.value = ''
+  wrongWordKeysThisRound.value = new Set()
   nextTick(() => inputRef.value?.focus())
 }
 
