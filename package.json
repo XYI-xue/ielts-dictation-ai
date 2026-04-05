@@ -8,16 +8,21 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
-    "double-metaphone": "^2.0.1",
+    "fast-levenshtein": "^3.0.0",
+    "natural": "^8.1.1",
     "nuxt": "^4.4.2",
-    "stemmer": "^2.0.1",
     "vue": "^3.5.31",
     "vue-router": "^5.0.4"
   },
   "devDependencies": {
-    "@nuxtjs/tailwindcss": "^6.14.0"
+    "@nuxt/test-utils": "^4.0.0",
+    "@nuxtjs/tailwindcss": "^6.14.0",
+    "happy-dom": "^20.8.9",
+    "vitest": "^4.1.2"
   }
 }
