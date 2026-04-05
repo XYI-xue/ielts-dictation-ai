@@ -1,9 +1,9 @@
 <template>
-  <div class="mx-auto max-w-2xl pb-16">
+  <div class="mx-auto max-w-3xl pb-16 px-1 sm:px-0">
     <header class="mb-8 space-y-2">
       <h1 class="text-2xl font-semibold tracking-tight text-zinc-50">专项复习</h1>
       <p class="text-sm leading-relaxed text-zinc-500">
-        列表仅展示听写页曾答错过的词；听写里后来拼对仍会保留在此，直到你在本页完成专项巩固（如拼写强化三次盲打对后移出）。
+        先看清<strong class="font-medium text-zinc-400">上次错在哪、与正确词差在哪</strong>，再完成下方练习。听写里后来拼对仍会保留在此，直到拼写强化完成三次盲打对等巩固。
       </p>
       <p class="text-sm text-zinc-600">
         <NuxtLink
@@ -54,30 +54,66 @@
       </p>
     </div>
 
-    <ul v-else class="space-y-4" role="list">
+    <ul v-else class="space-y-6" role="list">
       <li v-for="log in filteredLogs" :key="log.id">
         <!-- 拼写强化 -->
         <article
           v-if="activeTab === 'spelling'"
-          class="overflow-hidden rounded-2xl border border-zinc-800/90 bg-gradient-to-b from-zinc-900/80 to-zinc-950/95 p-5 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-white/[0.05] transition-[box-shadow,transform] duration-300"
+          class="overflow-hidden rounded-2xl border border-zinc-800/90 bg-gradient-to-b from-zinc-900/80 to-zinc-950/95 p-5 shadow-[0_20px_50px_-12px_rgba(0,0,0,0.55)] ring-1 ring-inset ring-white/[0.05] transition-[box-shadow,transform] duration-300 sm:p-6"
           :class="{
             'ring-2 ring-emerald-500/50 shadow-emerald-950/20': isCelebrating(log.id),
             'ring-1 ring-rose-500/25': spellStates[log.id]?.showInputError
           }"
         >
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">拼写强化</p>
+            <p class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">拼写强化 · 回顾 → 盲打巩固</p>
             <p v-if="recordedLabel(log)" class="text-[10px] text-zinc-600">{{ recordedLabel(log) }}</p>
           </div>
-          <p class="mt-1 font-mono text-sm text-zinc-500">你曾拼写为</p>
-          <p class="mt-0.5 font-mono text-2xl font-semibold tracking-tight text-rose-300/95">
-            {{ log.wrongInput || '（空）' }}
-          </p>
-          <p class="mt-3 text-xs text-zinc-600">
-            目标词 <span class="text-zinc-400">{{ log.target.word.length }}</span> 个字母 · 盲打正确后按 Enter 提交
+
+          <p
+            class="mt-3 rounded-lg border border-amber-500/30 bg-amber-950/35 px-3 py-2.5 text-xs leading-snug text-amber-100/95"
+          >
+            <span class="font-semibold text-amber-200/95">上次判定</span>
+            · {{ diagnosisLine(log.category) }}
+            <span class="mt-1 block text-amber-100/80">{{ reviewHint(log.category) }}</span>
           </p>
 
-          <!-- form submit + keyup.enter（不去拦截 keydown，避免个别环境无法触发 submit）；脚本内去重；提交以 input DOM 值为准 -->
+          <div class="mt-4 grid gap-3 sm:grid-cols-2 sm:gap-4">
+            <div
+              class="rounded-xl border border-rose-500/25 bg-rose-950/20 p-4 ring-1 ring-inset ring-rose-500/10"
+            >
+              <p class="text-[0.65rem] font-semibold uppercase tracking-wide text-rose-300/80">你的听写（错误）</p>
+              <p class="mt-2 font-mono text-xl font-semibold tracking-tight text-rose-200 sm:text-2xl">
+                {{ log.wrongInput || '（空）' }}
+              </p>
+            </div>
+            <div
+              class="rounded-xl border border-emerald-500/25 bg-emerald-950/20 p-4 ring-1 ring-inset ring-emerald-500/10"
+            >
+              <div class="flex items-start justify-between gap-2">
+                <p class="text-[0.65rem] font-semibold uppercase tracking-wide text-emerald-300/85">应掌握（正确）</p>
+                <button
+                  type="button"
+                  class="shrink-0 rounded-md border border-zinc-700/80 bg-zinc-900/80 px-2 py-1 text-[10px] font-medium text-zinc-400 transition hover:border-violet-500/40 hover:text-violet-200"
+                  :aria-label="`朗读 ${log.target.word}`"
+                  @click="speakWord(log.target.word)"
+                >
+                  朗读
+                </button>
+              </div>
+              <p class="mt-2 font-mono text-xl font-semibold tracking-tight text-emerald-200 sm:text-2xl">
+                {{ log.target.word }}
+              </p>
+              <p class="mt-2 font-mono text-sm text-zinc-400">{{ log.target.phonetic }}</p>
+              <p class="mt-1.5 text-sm leading-snug text-zinc-300">{{ log.target.translation }}</p>
+            </div>
+          </div>
+
+          <p class="mt-4 border-t border-zinc-800/90 pt-4 text-xs font-medium text-zinc-400">
+            练习：对照左侧错因与右侧正确信息，在下方<strong class="text-zinc-300">盲打</strong>正确单词；需连续对
+            <span class="tabular-nums text-violet-300">3</span> 次方可移出错词池。
+          </p>
+
           <form class="mt-3" @submit.prevent="onSpellSubmit(log)">
             <input
               :ref="(el) => setSpellInputRef(log.id, el)"
@@ -88,7 +124,7 @@
               autocorrect="off"
               autocapitalize="off"
               spellcheck="false"
-              placeholder="在此盲打正确拼写…"
+              placeholder="默写正确拼写，按 Enter 提交…"
               :disabled="isCelebrating(log.id)"
               class="w-full rounded-xl border bg-zinc-950/80 px-4 py-3 font-mono text-lg text-zinc-100 placeholder:text-zinc-700 outline-none ring-0 transition"
               :class="
@@ -124,56 +160,172 @@
           </Transition>
         </article>
 
-        <!-- 近音辨析 · 占位 -->
+        <!-- 近音辨析 -->
         <article
           v-else-if="activeTab === 'sound'"
-          class="rounded-2xl border border-zinc-800/90 bg-zinc-900/50 p-5 ring-1 ring-inset ring-white/[0.04]"
+          class="rounded-2xl border border-zinc-800/90 bg-zinc-900/50 p-5 ring-1 ring-inset ring-white/[0.04] sm:p-6"
         >
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">近音辨析</p>
+            <p class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">近音辨析 · 对照 → 默写自测</p>
             <p v-if="recordedLabel(log)" class="text-[10px] text-zinc-600">{{ recordedLabel(log) }}</p>
           </div>
-          <div class="mt-4 grid gap-4 sm:grid-cols-2">
-            <div class="rounded-xl border border-zinc-800/80 bg-zinc-950/50 p-4">
-              <p class="text-xs text-zinc-500">目标词</p>
-              <p class="mt-1 font-mono text-xl text-emerald-200/90">{{ log.target.word }}</p>
+
+          <p
+            class="mt-3 rounded-lg border border-violet-500/25 bg-violet-950/30 px-3 py-2.5 text-xs leading-snug text-violet-100/95"
+          >
+            <span class="font-semibold text-violet-200/95">上次判定</span>
+            · {{ diagnosisLine(log.category) }}
+            <span class="mt-1 block text-violet-100/85">{{ reviewHint(log.category) }}</span>
+          </p>
+
+          <div class="relative my-4 flex items-center gap-3">
+            <div class="h-px flex-1 bg-zinc-800" aria-hidden="true" />
+            <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">对比</span>
+            <div class="h-px flex-1 bg-zinc-800" aria-hidden="true" />
+          </div>
+
+          <div class="grid gap-3 sm:grid-cols-2 sm:gap-4">
+            <div class="rounded-xl border border-rose-500/20 bg-zinc-950/50 p-4">
+              <p class="text-xs font-medium text-rose-300/90">你写成了（易与目标混淆）</p>
+              <p class="mt-2 font-mono text-xl font-semibold text-rose-200">{{ log.wrongInput || '（空）' }}</p>
+            </div>
+            <div class="rounded-xl border border-emerald-500/20 bg-zinc-950/50 p-4">
+              <div class="flex items-start justify-between gap-2">
+                <p class="text-xs font-medium text-emerald-300/90">听写目标（正确）</p>
+                <button
+                  type="button"
+                  class="shrink-0 rounded-md border border-zinc-700/80 bg-zinc-900/80 px-2 py-1 text-[10px] font-medium text-zinc-400 transition hover:border-violet-500/40 hover:text-violet-200"
+                  @click="speakWord(log.target.word)"
+                >
+                  朗读
+                </button>
+              </div>
+              <p class="mt-2 font-mono text-xl font-semibold text-emerald-200">{{ log.target.word }}</p>
               <p class="mt-2 text-xs text-zinc-500">{{ log.target.phonetic }}</p>
-              <p class="mt-1 text-sm text-zinc-400">{{ log.target.translation }}</p>
+              <p class="mt-1 text-sm leading-snug text-zinc-400">{{ log.target.translation }}</p>
             </div>
-            <div class="rounded-xl border border-zinc-800/80 bg-zinc-950/50 p-4">
-              <p class="text-xs text-zinc-500">你的输入</p>
-              <p class="mt-1 font-mono text-xl text-rose-300/90">{{ log.wrongInput || '（空）' }}</p>
-              <p class="mt-3 text-xs leading-relaxed text-zinc-600">
-                完整交互（听音二选一、释义对比）将在后续步骤接入。
-              </p>
-            </div>
+          </div>
+
+          <p class="mt-4 text-xs text-zinc-500">
+            重点：二者<strong class="text-zinc-400">拼写不同</strong>，听感或语音编码可能相近；请用<strong
+              class="text-zinc-400"
+              >释义与音标</strong
+            >
+            锚定正确词形。
+          </p>
+
+          <div class="mt-5 border-t border-zinc-800/80 pt-4">
+            <p class="text-xs font-medium text-zinc-400">自测：合上书默写目标词（不计入移出池，仅供巩固）</p>
+            <form class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center" @submit.prevent="onSelfCheckSubmit(log)">
+              <input
+                v-model="selfCheckStates[log.id].input"
+                type="text"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                placeholder="输入正确单词…"
+                class="min-w-0 flex-1 rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2.5 font-mono text-base text-zinc-100 placeholder:text-zinc-600 focus:border-violet-500/45 focus:outline-none focus:ring-1 focus:ring-violet-500/30"
+                @input="onSelfCheckInput(log.id)"
+                @keyup.enter.exact.prevent="onSelfCheckSubmit(log)"
+              />
+              <button
+                type="submit"
+                class="shrink-0 rounded-xl border border-violet-500/35 bg-violet-950/40 px-4 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-900/45"
+              >
+                检查
+              </button>
+            </form>
+            <p
+              v-if="selfCheckStates[log.id]?.feedback === 'correct'"
+              class="mt-2 text-sm font-medium text-emerald-400/95"
+            >
+              ✓ 拼写正确，可回到听写页再验一次听辨。
+            </p>
+            <p
+              v-else-if="selfCheckStates[log.id]?.feedback === 'wrong'"
+              class="mt-2 text-sm font-medium text-rose-400/95"
+            >
+              ✗ 再对照上方绿色卡片中的目标词与释义后重试。
+            </p>
           </div>
         </article>
 
-        <!-- 生词重学 · 占位 -->
+        <!-- 生词重学 -->
         <article
           v-else
-          class="rounded-2xl border border-zinc-800/90 bg-zinc-900/50 p-5 ring-1 ring-inset ring-white/[0.04]"
+          class="rounded-2xl border border-zinc-800/90 bg-zinc-900/50 p-5 ring-1 ring-inset ring-white/[0.04] sm:p-6"
         >
           <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">生词重学</p>
+            <p class="text-[11px] font-medium uppercase tracking-wider text-zinc-500">生词重学 · 整词记忆 → 默写自测</p>
             <p v-if="recordedLabel(log)" class="text-[10px] text-zinc-600">{{ recordedLabel(log) }}</p>
           </div>
-          <div class="mt-4 space-y-3">
-            <div>
-              <p class="text-xs text-zinc-500">目标词</p>
-              <p class="mt-0.5 font-mono text-2xl text-zinc-100">{{ log.target.word }}</p>
-              <p class="mt-1 text-sm text-zinc-500">{{ log.target.phonetic }}</p>
-              <p class="mt-1 text-zinc-400">{{ log.target.translation }}</p>
+
+          <p
+            class="mt-3 rounded-lg border border-sky-500/25 bg-sky-950/25 px-3 py-2.5 text-xs leading-snug text-sky-100/95"
+          >
+            <span class="font-semibold text-sky-200/95">上次判定</span>
+            · {{ diagnosisLine(log.category) }}
+            <span class="mt-1 block text-sky-100/85">{{ reviewHint(log.category) }}</span>
+          </p>
+
+          <div class="mt-4 rounded-xl border border-zinc-800/80 bg-zinc-950/45 p-4">
+            <p class="text-xs text-zinc-500">你曾写成</p>
+            <p class="mt-1 font-mono text-lg font-semibold text-rose-300/90">{{ log.wrongInput || '（空）' }}</p>
+          </div>
+
+          <div class="mt-4 rounded-xl border border-emerald-500/20 bg-emerald-950/15 p-4 ring-1 ring-inset ring-emerald-500/10">
+            <div class="flex items-start justify-between gap-2">
+              <p class="text-xs font-medium text-emerald-300/90">应掌握的词与义</p>
+              <button
+                type="button"
+                class="shrink-0 rounded-md border border-zinc-700/80 bg-zinc-900/80 px-2 py-1 text-[10px] font-medium text-zinc-400 transition hover:border-violet-500/40 hover:text-violet-200"
+                @click="speakWord(log.target.word)"
+              >
+                朗读
+              </button>
             </div>
-            <div class="rounded-lg border border-zinc-800/80 bg-zinc-950/40 px-3 py-2">
-              <p class="text-xs text-zinc-500">你的输入</p>
-              <p class="font-mono text-sm text-rose-300/85">{{ log.wrongInput || '（空）' }}</p>
-            </div>
-            <p class="text-xs leading-relaxed text-zinc-600">
-              例句：{{ log.target.example_sentence }}
+            <p class="mt-2 font-mono text-2xl font-semibold text-zinc-100">{{ log.target.word }}</p>
+            <p class="mt-1 text-sm text-zinc-500">{{ log.target.phonetic }}</p>
+            <p class="mt-2 leading-snug text-zinc-300">{{ log.target.translation }}</p>
+            <p class="mt-3 border-t border-zinc-800/80 pt-3 text-xs leading-relaxed text-zinc-500">
+              <span class="font-medium text-zinc-600">例句</span>
+              {{ log.target.example_sentence }}
             </p>
-            <p class="text-xs text-zinc-600">词根详解与复习流程将在后续步骤完善。</p>
+          </div>
+
+          <div class="mt-5 border-t border-zinc-800/80 pt-4">
+            <p class="text-xs font-medium text-zinc-400">自测：默写目标词（不计入移出池）</p>
+            <form class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center" @submit.prevent="onSelfCheckSubmit(log)">
+              <input
+                v-model="selfCheckStates[log.id].input"
+                type="text"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                placeholder="输入正确单词…"
+                class="min-w-0 flex-1 rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2.5 font-mono text-base text-zinc-100 placeholder:text-zinc-600 focus:border-violet-500/45 focus:outline-none focus:ring-1 focus:ring-violet-500/30"
+                @input="onSelfCheckInput(log.id)"
+                @keyup.enter.exact.prevent="onSelfCheckSubmit(log)"
+              />
+              <button
+                type="submit"
+                class="shrink-0 rounded-xl border border-violet-500/35 bg-violet-950/40 px-4 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-900/45"
+              >
+                检查
+              </button>
+            </form>
+            <p
+              v-if="selfCheckStates[log.id]?.feedback === 'correct'"
+              class="mt-2 text-sm font-medium text-emerald-400/95"
+            >
+              ✓ 拼写正确；建议隔一段时间在听写页再听一遍巩固。
+            </p>
+            <p
+              v-else-if="selfCheckStates[log.id]?.feedback === 'wrong'"
+              class="mt-2 text-sm font-medium text-rose-400/95"
+            >
+              ✗ 再对照上方词条、释义与例句后重试。
+            </p>
           </div>
         </article>
       </li>
@@ -182,6 +334,11 @@
 </template>
 
 <script setup lang="ts">
+import {
+  DIAGNOSIS_POOL_LABEL,
+  DIAGNOSIS_SHORT_LABEL,
+  type SpellingDiagnosisCategory
+} from '~/utils/diagnosticEngine'
 import {
   isDictationReviewEntry,
   type ErrorLogEntry,
@@ -200,10 +357,28 @@ const tabs: { key: TabKey; label: string; categories: ErrorReviewCategory[] }[] 
   { key: 'unknown', label: '生词重学', categories: ['completely_unknown'] }
 ]
 
+const REVIEW_HINTS: Record<ErrorReviewCategory, string> = {
+  sound_alike:
+    '读音编码与目标词相同或极近，但字母拼写不同。请用中文释义与音标锁定「该写哪一个词」。',
+  typo: '与正确词拼写相近，容易看错、抄错字母。请逐项对照右侧正确拼写。',
+  morphological: '与目标属同一词族（如时态、单复数、派生）。请留意词形变化规则再默写。',
+  completely_unknown: '与正确词差距较大，更像未掌握的生词。请连释义、例句一起记，再默写整词。'
+}
+
 const { errorLogs, removeErrorLog } = useWordStore()
 
 /** 与听写结果对齐的复习条目（排除未来其它来源且带显式 source 的数据） */
 const dictationReviewLogs = computed(() => errorLogs.value.filter(isDictationReviewEntry))
+
+function diagnosisLine(category: ErrorReviewCategory): string {
+  const short = DIAGNOSIS_SHORT_LABEL[category]
+  const pool = DIAGNOSIS_POOL_LABEL[category as SpellingDiagnosisCategory]
+  return `${short}（${pool}）`
+}
+
+function reviewHint(category: ErrorReviewCategory): string {
+  return REVIEW_HINTS[category]
+}
 
 function recordedLabel(log: ErrorLogEntry): string {
   if (!log.recordedAt) return log.source === 'dictation' ? '' : '历史记录'
@@ -214,6 +389,17 @@ function recordedLabel(log: ErrorLogEntry): string {
   } catch {
     return ''
   }
+}
+
+function speakWord(word: string) {
+  if (!import.meta.client) return
+  const w = word.trim()
+  if (!w) return
+  window.speechSynthesis.cancel()
+  const u = new SpeechSynthesisUtterance(w)
+  u.lang = 'en-US'
+  u.rate = 0.92
+  window.speechSynthesis.speak(u)
 }
 
 const activeTab = ref<TabKey>('sound')
@@ -231,6 +417,16 @@ const spellStates = reactive(
   >
 )
 
+const selfCheckStates = reactive(
+  {} as Record<
+    string,
+    {
+      input: string
+      feedback: 'idle' | 'correct' | 'wrong'
+    }
+  >
+)
+
 function ensureSpellState(id: string) {
   if (!spellStates[id]) {
     spellStates[id] = {
@@ -238,6 +434,15 @@ function ensureSpellState(id: string) {
       filled: 0,
       showInputError: false,
       celebrating: false
+    }
+  }
+}
+
+function ensureSelfCheckState(id: string) {
+  if (!selfCheckStates[id]) {
+    selfCheckStates[id] = {
+      input: '',
+      feedback: 'idle'
     }
   }
 }
@@ -313,12 +518,39 @@ function onSpellSubmit(log: ErrorLogEntry) {
   }
 }
 
+const lastSelfCheckAt = new Map<string, number>()
+
+function onSelfCheckInput(id: string) {
+  ensureSelfCheckState(id)
+  selfCheckStates[id].feedback = 'idle'
+}
+
+function onSelfCheckSubmit(log: ErrorLogEntry) {
+  const now = performance.now()
+  const prev = lastSelfCheckAt.get(log.id) ?? 0
+  if (now - prev < 120) return
+  lastSelfCheckAt.set(log.id, now)
+
+  ensureSelfCheckState(log.id)
+  const st = selfCheckStates[log.id]
+  const attempt = st.input.trim()
+  if (!attempt) {
+    st.feedback = 'idle'
+    return
+  }
+  const ok = attempt.toLowerCase() === log.target.word.trim().toLowerCase()
+  st.feedback = ok ? 'correct' : 'wrong'
+}
+
 watch(
   dictationReviewLogs,
   (logs) => {
     for (const log of logs) {
       if (log.category === 'typo' || log.category === 'morphological') {
         ensureSpellState(log.id)
+      }
+      if (log.category === 'sound_alike' || log.category === 'completely_unknown') {
+        ensureSelfCheckState(log.id)
       }
     }
   },

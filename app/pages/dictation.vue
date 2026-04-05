@@ -1,5 +1,5 @@
 <template>
-  <div class="mx-auto max-w-lg pb-12">
+  <div class="mx-auto max-w-4xl pb-12 px-1 sm:px-0">
     <header class="mb-6 space-y-2">
       <div class="flex flex-wrap items-end justify-between gap-3">
         <h1 class="text-2xl font-semibold tracking-tight text-zinc-50">Dictation</h1>
@@ -10,6 +10,7 @@
           第 {{ currentIndex + 1 }} / {{ words.length }} 词
         </p>
       </div>
+      <!--
       <p class="text-sm leading-relaxed text-zinc-400">
         第一个词请点击播放开始；之后每题在跳转后会自动朗读。在下方输入框拼写单词，按
         <kbd
@@ -26,10 +27,11 @@
         >
         / 点 × 提前下一题，并在更长时间后自动进入下一题。
       </p>
+      -->
     </header>
 
     <div
-      class="relative overflow-hidden rounded-2xl border border-zinc-800/90 bg-gradient-to-b from-zinc-900/90 to-zinc-950/95 p-6 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.65)] ring-1 ring-inset ring-white/[0.06] sm:p-8"
+      class="relative overflow-hidden rounded-2xl border border-zinc-800/90 bg-gradient-to-b from-zinc-900/90 to-zinc-950/95 p-5 shadow-[0_24px_64px_-12px_rgba(0,0,0,0.65)] ring-1 ring-inset ring-white/[0.06] sm:p-6"
     >
       <div
         class="pointer-events-none absolute -right-20 -top-20 h-40 w-40 rounded-full bg-violet-600/10 blur-3xl"
@@ -40,14 +42,14 @@
         aria-hidden="true"
       />
 
-      <div v-if="roundComplete" class="relative z-10 space-y-4 py-10 text-center">
+      <div v-if="roundComplete" class="relative z-10 space-y-3 py-6 text-center sm:py-8">
         <p class="text-lg font-medium text-zinc-100">本轮听写已完成</p>
         <p class="text-sm text-zinc-400">
           可以稍后在 Dashboard 查看进度，或重新开始一轮。
         </p>
         <p
           v-if="distinctWrongWordsThisRound > 0"
-          class="mx-auto max-w-sm rounded-xl border border-zinc-800/90 bg-zinc-900/50 px-4 py-3 text-sm leading-relaxed text-zinc-300"
+          class="mx-auto max-w-2xl rounded-xl border border-zinc-800/90 bg-zinc-900/50 px-4 py-2.5 text-sm leading-snug text-zinc-300"
         >
           本轮共有
           <span class="font-semibold tabular-nums text-zinc-100">{{ distinctWrongWordsThisRound }}</span>
@@ -70,10 +72,10 @@
       </div>
 
       <template v-else>
-        <div class="relative z-10 flex flex-col items-center gap-6">
+        <div class="relative z-10 flex flex-col items-center gap-4 sm:gap-5">
           <button
             type="button"
-            class="group flex h-28 w-28 flex-col items-center justify-center rounded-full border-2 border-zinc-600/80 bg-zinc-800/50 text-zinc-100 shadow-lg shadow-black/30 transition-all hover:border-violet-500/50 hover:bg-zinc-800 hover:shadow-violet-950/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-zinc-600/80 disabled:hover:bg-zinc-800/50"
+            class="group flex h-20 w-20 flex-col items-center justify-center rounded-full border-2 border-zinc-600/80 bg-zinc-800/50 text-zinc-100 shadow-lg shadow-black/30 transition-all hover:border-violet-500/50 hover:bg-zinc-800 hover:shadow-violet-950/20 focus:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 focus-visible:ring-offset-zinc-950 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-zinc-600/80 disabled:hover:bg-zinc-800/50 sm:h-20 sm:w-20"
             :class="[
               isSpeaking &&
                 'border-violet-400/70 bg-violet-950/40 shadow-violet-900/30 ring-4 ring-violet-500/20'
@@ -84,16 +86,16 @@
             @click="speakCurrentWord"
           >
             <span
-              class="text-4xl leading-none transition-transform group-hover:scale-105"
+              class="text-3xl leading-none transition-transform group-hover:scale-105 sm:text-4xl"
               :class="{ 'animate-pulse': isSpeaking }"
               aria-hidden="true"
               >▶</span
             >
-            <span class="mt-2 text-xs font-semibold tracking-wide text-zinc-300 group-hover:text-white">
+            <span class="mt-1 text-[0.65rem] font-semibold tracking-wide text-zinc-300 group-hover:text-white sm:text-xs">
               播放发音
             </span>
           </button>
-          <p class="text-center text-xs leading-relaxed text-zinc-400">
+          <p class="text-center text-[0.7rem] leading-snug text-zinc-400 sm:text-xs">
             使用本机浏览器的语音合成朗读，需系统已安装英文语音。
           </p>
 
@@ -111,10 +113,10 @@
               placeholder="在此输入单词…"
               :readonly="inputReadonlyForFeedback"
               :class="inputReadonlyForFeedback && 'cursor-default opacity-90'"
-              class="w-full rounded-xl border border-zinc-700/90 bg-zinc-950/60 px-4 py-4 text-center text-3xl font-medium tracking-wide text-zinc-50 shadow-inner shadow-black/40 placeholder:text-zinc-500 focus:border-violet-500/60 focus:outline-none focus:ring-2 focus:ring-violet-500/40 sm:text-4xl"
+              class="w-full rounded-xl border border-zinc-700/90 bg-zinc-950/60 px-4 py-2.5 text-center text-2xl font-medium tracking-wide text-zinc-50 shadow-inner shadow-black/40 placeholder:text-zinc-500 focus:border-violet-500/60 focus:outline-none focus:ring-2 focus:ring-violet-500/40 sm:py-3 sm:text-3xl"
               @keydown.enter.prevent="onEnterKey"
             />
-            <p class="mt-2.5 text-center text-xs text-zinc-400">
+            <p class="mt-2 text-center text-[0.7rem] leading-snug text-zinc-400 sm:text-xs">
               <template v-if="feedback && !feedback.match && wrongRevealActive">
                 正在展示正确答案（约 {{ wrongRevealLabel }}）；结束后可重新听写并提交。
               </template>
@@ -162,49 +164,59 @@
             leave-from-class="opacity-100 translate-y-0"
             leave-to-class="opacity-0 translate-y-1"
           >
-            <div v-if="feedback" class="w-full space-y-3">
+            <div v-if="feedback" class="w-full space-y-2">
               <!-- 答错 · 阶段一：完整正确答案（短时展示） -->
               <div
                 v-if="!feedback.match && wrongRevealActive"
                 role="status"
-                class="rounded-xl border border-red-500/45 bg-red-950/30 px-4 py-4 text-red-50"
+                class="rounded-xl border border-red-500/45 bg-red-950/30 px-4 py-3 text-red-50 sm:px-5"
               >
                 <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0 flex-1 space-y-3 text-sm">
+                  <div class="min-w-0 flex-1 space-y-2 text-sm">
                     <p
                       v-if="feedback.category && feedback.category !== 'correct'"
-                      class="rounded-lg border border-amber-500/35 bg-amber-950/40 px-3 py-2.5 text-xs leading-snug text-amber-100/95"
+                      class="rounded-lg border border-amber-500/35 bg-amber-950/40 px-3 py-2 text-xs leading-snug text-amber-100/95"
                     >
                       {{ wrongToastText }}
                     </p>
-                    <p class="text-xs font-medium text-red-200/90">正确答案（供你对照）</p>
-                    <div>
-                      <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">词条</p>
-                      <p
-                        class="break-words font-mono text-2xl font-semibold tracking-tight text-red-200 sm:text-3xl"
-                      >
-                        {{ feedback.entry.word }}
+                    <p class="text-[0.7rem] font-medium text-red-200/90 sm:text-xs">正确答案（供你对照）</p>
+                    <div
+                      class="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2 sm:items-start"
+                    >
+                      <div>
+                        <p class="text-[0.65rem] font-medium uppercase tracking-wide text-zinc-500">
+                          词条
+                        </p>
+                        <p
+                          class="break-words font-mono text-xl font-semibold tracking-tight text-red-200 sm:text-2xl"
+                        >
+                          {{ feedback.entry.word }}
+                        </p>
+                      </div>
+                      <div>
+                        <p class="text-[0.65rem] font-medium uppercase tracking-wide text-zinc-500">
+                          音标
+                        </p>
+                        <p class="text-sm leading-snug text-red-100/90 sm:text-base">
+                          {{ feedback.entry.phonetic }}
+                        </p>
+                      </div>
+                      <p class="leading-snug text-red-100/85 sm:col-span-2">
+                        <span class="mr-1.5 font-medium text-zinc-400">释义</span>
+                        {{ feedback.entry.translation }}
+                      </p>
+                      <p class="text-xs leading-snug text-red-200/80 sm:col-span-2">
+                        <span class="mr-1.5 font-medium text-zinc-500">例句</span>
+                        {{ feedback.entry.example_sentence }}
                       </p>
                     </div>
-                    <p class="text-base text-red-100/90">
-                      <span class="font-medium text-zinc-400">音标</span>
-                      {{ feedback.entry.phonetic }}
-                    </p>
-                    <p class="leading-relaxed text-red-100/85">
-                      <span class="font-medium text-zinc-400">释义</span>
-                      {{ feedback.entry.translation }}
-                    </p>
-                    <p class="text-xs leading-relaxed text-red-200/80">
-                      <span class="font-medium text-zinc-500">例句</span>
-                      {{ feedback.entry.example_sentence }}
-                    </p>
-                    <div class="border-t border-red-500/25 pt-3">
-                      <p class="break-words text-zinc-300">
+                    <div class="border-t border-red-500/25 pt-2">
+                      <p class="break-words text-xs text-zinc-300 sm:text-sm">
                         你的输入：
                         <span class="font-mono text-zinc-50">{{ feedback.input }}</span>
                       </p>
                     </div>
-                    <p class="text-xs text-zinc-500">
+                    <p class="text-[0.65rem] leading-snug text-zinc-500 sm:text-xs">
                       约 {{ wrongRevealLabel }} 后将隐藏上述答案，请用播放重新盲听写。
                     </p>
                   </div>
@@ -223,21 +235,21 @@
               <div
                 v-else-if="!feedback.match"
                 role="status"
-                class="rounded-xl border border-red-500/45 bg-red-950/30 px-4 py-4 text-red-50"
+                class="rounded-xl border border-red-500/45 bg-red-950/30 px-4 py-3 text-red-50 sm:px-5"
               >
                 <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0 flex-1 space-y-3 text-sm">
+                  <div class="min-w-0 flex-1 space-y-2 text-sm">
                     <p
                       v-if="feedback.category && feedback.category !== 'correct'"
-                      class="rounded-lg border border-amber-500/35 bg-amber-950/40 px-3 py-2.5 text-xs leading-snug text-amber-100/95"
+                      class="rounded-lg border border-amber-500/35 bg-amber-950/40 px-3 py-2 text-xs leading-snug text-amber-100/95"
                     >
                       {{ wrongToastText }}
                     </p>
-                    <p class="break-words text-zinc-300">
+                    <p class="break-words text-xs text-zinc-300 sm:text-sm">
                       你的输入：
                       <span class="font-mono text-zinc-50">{{ feedback.input }}</span>
                     </p>
-                    <p class="text-xs leading-relaxed text-zinc-500">
+                    <p class="text-[0.7rem] leading-snug text-zinc-500 sm:text-xs">
                       当前为盲听写，未显示目标词与释义；请用上方播放重新听写，或点 × 跳过本题。
                     </p>
                   </div>
@@ -256,32 +268,42 @@
               <div
                 v-else
                 role="status"
-                class="rounded-xl border border-emerald-500/45 bg-emerald-950/35 px-4 py-4 text-emerald-50"
+                class="rounded-xl border border-emerald-500/45 bg-emerald-950/35 px-4 py-3 text-emerald-50 sm:px-5"
               >
                 <div class="flex items-start justify-between gap-3">
-                  <div class="min-w-0 flex-1 space-y-3 text-sm">
-                    <div>
-                      <p class="text-xs font-medium uppercase tracking-wide text-zinc-500">词条</p>
-                      <p
-                        class="break-words font-mono text-2xl font-semibold tracking-tight text-emerald-300 sm:text-3xl"
-                      >
-                        {{ feedback.entry.word }}
+                  <div class="min-w-0 flex-1 space-y-2 text-sm">
+                    <div
+                      class="grid grid-cols-1 gap-x-6 gap-y-1.5 sm:grid-cols-2 sm:items-start"
+                    >
+                      <div>
+                        <p class="text-[0.65rem] font-medium uppercase tracking-wide text-zinc-500">
+                          词条
+                        </p>
+                        <p
+                          class="break-words font-mono text-xl font-semibold tracking-tight text-emerald-300 sm:text-2xl"
+                        >
+                          {{ feedback.entry.word }}
+                        </p>
+                      </div>
+                      <div>
+                        <p class="text-[0.65rem] font-medium uppercase tracking-wide text-zinc-500">
+                          音标
+                        </p>
+                        <p class="text-sm leading-snug text-emerald-100/90 sm:text-base">
+                          {{ feedback.entry.phonetic }}
+                        </p>
+                      </div>
+                      <p class="leading-snug text-emerald-100/85 sm:col-span-2">
+                        <span class="mr-1.5 font-medium text-zinc-400">释义</span>
+                        {{ feedback.entry.translation }}
+                      </p>
+                      <p class="text-xs leading-snug text-emerald-200/80 sm:col-span-2">
+                        <span class="mr-1.5 font-medium text-zinc-500">例句</span>
+                        {{ feedback.entry.example_sentence }}
                       </p>
                     </div>
-                    <p class="text-base text-emerald-100/90">
-                      <span class="font-medium text-zinc-400">音标</span>
-                      {{ feedback.entry.phonetic }}
-                    </p>
-                    <p class="leading-relaxed text-emerald-100/85">
-                      <span class="font-medium text-zinc-400">释义</span>
-                      {{ feedback.entry.translation }}
-                    </p>
-                    <p class="text-xs leading-relaxed text-emerald-200/80">
-                      <span class="font-medium text-zinc-500">例句</span>
-                      {{ feedback.entry.example_sentence }}
-                    </p>
-                    <div class="border-t border-emerald-500/20 pt-3">
-                      <p class="break-words text-zinc-300">
+                    <div class="border-t border-emerald-500/20 pt-2">
+                      <p class="break-words text-xs text-zinc-300 sm:text-sm">
                         你的输入：
                         <span class="font-mono text-zinc-50">{{ feedback.input }}</span>
                       </p>

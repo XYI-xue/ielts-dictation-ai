@@ -29,6 +29,11 @@ describe('diagnoseError', () => {
     expect(diagnoseError('right', 'write', dict)).toBe('sound_alike')
   })
 
+  it('classifies sound_alike when Metaphone matches but user spelling is not a dictionary word', () => {
+    const dict = new Set(['write'])
+    expect(diagnoseError('ryte', 'write', dict)).toBe('sound_alike')
+  })
+
   it('classifies typo when input is not a dictionary word and Levenshtein distance ≤ 2', () => {
     const dict = new Set(['rhythm'])
     expect(diagnoseError('rythm', 'rhythm', dict)).toBe('typo')
