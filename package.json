@@ -1,0 +1,23 @@
+{
+  "name": "ielts-dictation",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "clean": "nuxi cleanup",
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "double-metaphone": "^2.0.1",
+    "nuxt": "^4.4.2",
+    "stemmer": "^2.0.1",
+    "vue": "^3.5.31",
+    "vue-router": "^5.0.4"
+  },
+  "devDependencies": {
+    "@nuxtjs/tailwindcss": "^6.14.0"
+  }
+}
