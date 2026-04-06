@@ -1,5 +1,12 @@
 import type { SpellingDiagnosisCategory } from '~/lib/diagnosticCore'
+import type { DictationSession, SessionStatus } from '~/types/dictationSession'
 import { persistErrorLogsToStorage } from '~/utils/errorLogsStorage'
+import {
+  persistCurrentSession,
+  persistHistorySessions
+} from '~/utils/trainingSessionStorage'
+
+export type { DictationSession, SessionStatus } from '~/types/dictationSession'
 
 export interface WordEntry {
   word: string
@@ -91,12 +98,34 @@ const MOCK_VOCABULARY: WordEntry[] = [
   }
 ]
 
+const ERROR_DIST_KEYS: ErrorReviewCategory[] = [
+  'sound_alike',
+  'typo',
+  'morphological',
+  'completely_unknown'
+]
+
+function localDateYmd(): string {
+  const d = new Date()
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 export function useWordStore() {
   const words = useState<WordEntry[]>('word-store', () => [...MOCK_VOCABULARY])
   const errorLogs = useState<ErrorLogEntry[]>('word-store:error-logs', () => [])
+  const historySessions = useState<DictationSession[]>('word-store:history-sessions', () => [])
+  const currentSession = useState<DictationSession | null>('word-store:current-session', () => null)
 
   function syncErrorLogsToStorage() {
     persistErrorLogsToStorage(errorLogs.value)
+  }
+
+  function syncSessionsToStorage() {
+    persistHistorySessions(historySessions.value)
+    persistCurrentSession(currentSession.value)
   }
 
   function removeErrorLog(id: string) {
@@ -121,20 +150,109 @@ export function useWordStore() {
 
   /**
    * 听写答错时写入/更新：同一目标词只保留一条，刷新错因与错拼。
-   * 听写里后来改对不会删除本条；移出复习池仅在 Review 完成专项（如 removeErrorLog）时进行。
+   * 复用已有 id，便于 Session.errorIds 与错题池稳定对应。
    */
-  function upsertErrorLog(entry: Omit<ErrorLogEntry, 'id'>) {
+  function upsertErrorLog(entry: Omit<ErrorLogEntry, 'id'>): string {
     const key = normalizeWordKey(entry.target.word)
+    const existing = errorLogs.value.find((e) => normalizeWordKey(e.target.word) === key)
+    const id = existing?.id ?? newErrorLogId()
     const without = errorLogs.value.filter((e) => normalizeWordKey(e.target.word) !== key)
-    errorLogs.value = [...without, { ...entry, id: newErrorLogId() }]
+    errorLogs.value = [...without, { ...entry, id }]
     syncErrorLogsToStorage()
+    return id
   }
+
+  /** 将当前轮次写入历史并从内存清空（用于换轮或结束） */
+  function archiveCurrentSession(status: SessionStatus) {
+    const cur = currentSession.value
+    if (!cur) return
+    historySessions.value = [...historySessions.value, { ...cur, status }]
+    currentSession.value = null
+    syncSessionsToStorage()
+  }
+
+  /**
+   * 开始新一轮听写：若存在未归档的当前 Session，先以 `ongoing` 追加到 historySessions。
+   */
+  function beginDictationSession(wordsCount: number) {
+    if (wordsCount <= 0) return
+    if (currentSession.value) {
+      archiveCurrentSession('ongoing')
+    }
+    currentSession.value = {
+      id: `sess-${Date.now()}`,
+      date: localDateYmd(),
+      wordsCount,
+      correctCount: 0,
+      errorIds: [],
+      status: 'ongoing'
+    }
+    syncSessionsToStorage()
+  }
+
+  /** 听写整轮正常完成时调用：当前 Session 以 `completed` 写入 historySessions */
+  function completeCurrentDictationSession() {
+    archiveCurrentSession('completed')
+  }
+
+  /** 单次提交结果：答对增加 correctCount；答错写入 errorIds（按错题 id 去重） */
+  function recordDictationSessionAnswer(opts: { correct: boolean; errorLogId?: string }) {
+    const cur = currentSession.value
+    if (!cur) return
+    if (opts.correct) {
+      cur.correctCount += 1
+    } else if (opts.errorLogId && !cur.errorIds.includes(opts.errorLogId)) {
+      cur.errorIds = [...cur.errorIds, opts.errorLogId]
+    }
+    syncSessionsToStorage()
+  }
+
+  const recentSessions = computed(() => {
+    const list = historySessions.value
+    if (list.length <= 5) return [...list].reverse()
+    return list.slice(-5).reverse()
+  })
+
+  const errorTypeDistribution = computed(() => {
+    const counts: Record<ErrorReviewCategory, number> = {
+      sound_alike: 0,
+      typo: 0,
+      morphological: 0,
+      completely_unknown: 0
+    }
+    const byId = new Map(errorLogs.value.map((e) => [e.id, e]))
+    const sessions = [...historySessions.value]
+    if (currentSession.value) {
+      sessions.push(currentSession.value)
+    }
+    for (const s of sessions) {
+      for (const id of s.errorIds) {
+        const log = byId.get(id)
+        if (log) {
+          counts[log.category] += 1
+        }
+      }
+    }
+    const total = ERROR_DIST_KEYS.reduce((sum, k) => sum + counts[k], 0)
+    const percentages = {} as Record<ErrorReviewCategory, number>
+    for (const k of ERROR_DIST_KEYS) {
+      percentages[k] = total > 0 ? Math.round((counts[k] / total) * 1000) / 10 : 0
+    }
+    return { counts, total, percentages }
+  })
 
   return {
     words,
     errorLogs,
+    historySessions,
+    currentSession,
     removeErrorLog,
     pushErrorLog,
-    upsertErrorLog
+    upsertErrorLog,
+    beginDictationSession,
+    completeCurrentDictationSession,
+    recordDictationSessionAnswer,
+    recentSessions,
+    errorTypeDistribution
   }
 }

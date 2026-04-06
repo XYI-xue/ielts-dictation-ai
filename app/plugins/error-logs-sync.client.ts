@@ -1,3 +1,4 @@
+import type { DictationSession } from '~/types/dictationSession'
 import type { ErrorLogEntry } from '~/composables/useWordStore'
 import {
   ERROR_LOGS_STORAGE_KEY,
@@ -5,46 +6,70 @@ import {
   persistErrorLogsToStorage,
   readErrorLogsFromStorage
 } from '~/utils/errorLogsStorage'
+import {
+  CURRENT_SESSION_KEY,
+  HISTORY_SESSIONS_KEY,
+  parseCurrentSession,
+  parseHistorySessions,
+  persistCurrentSession,
+  persistHistorySessions,
+  readCurrentSessionFromStorage,
+  readHistorySessionsFromStorage
+} from '~/utils/trainingSessionStorage'
 
 /**
- * 错题池与 localStorage 的中间同步层：
- * - 在插件阶段尽早从 LS 灌入 useState，减轻 SSR payload 把 errorLogs 冲成 [] 的影响
- * - app:mounted 再拉一次：若内存条数少于 LS（例如被 payload 覆盖），用 LS 恢复
- * - watch flush:sync + 业务里同步 persist，避免跳转过快时还未写入 LS
- * - storage 事件：其它标签页写入时同步到当前页
+ * 错题池、训练轮次与 localStorage 同步：
+ * - 尽早从 LS 灌入 useState，减轻 SSR payload 把状态冲成默认的影响
+ * - 路由切换后尝试用更「全」的错题 LS 合并内存
+ * - watch flush:sync + 业务内同步 persist
+ * - storage 事件：其它标签页写入时同步
  */
-export default defineNuxtPlugin((nuxtApp) => {
+export default defineNuxtPlugin(() => {
   const errorLogs = useState<ErrorLogEntry[]>('word-store:error-logs', () => [])
+  const historySessions = useState<DictationSession[]>('word-store:history-sessions', () => [])
+  const currentSession = useState<DictationSession | null>('word-store:current-session', () => null)
 
-  function pullFromStorageIfRicher() {
+  function pullErrorLogsIfRicher() {
     const fromLs = readErrorLogsFromStorage()
     if (fromLs.length > errorLogs.value.length) {
       errorLogs.value = fromLs
     }
   }
 
-  function applyStorageEventPayload(newValue: string | null) {
-    const parsed = parseStoredErrorLogs(newValue)
-    errorLogs.value = parsed
+  function hydrateSessionsFromLocalStorage() {
+    historySessions.value = readHistorySessionsFromStorage()
+    currentSession.value = readCurrentSessionFromStorage()
   }
 
-  pullFromStorageIfRicher()
+  function applyErrorLogsStorageEvent(newValue: string | null) {
+    errorLogs.value = parseStoredErrorLogs(newValue)
+  }
+
+  pullErrorLogsIfRicher()
+  hydrateSessionsFromLocalStorage()
 
   const router = useRouter()
   router.afterEach(() => {
-    pullFromStorageIfRicher()
+    pullErrorLogsIfRicher()
   })
 
-  watch(
-    errorLogs,
-    (v) => persistErrorLogsToStorage(v),
-    { deep: true, flush: 'sync' }
-  )
+  watch(errorLogs, (v) => persistErrorLogsToStorage(v), { deep: true, flush: 'sync' })
+  watch(historySessions, (v) => persistHistorySessions(v), { deep: true, flush: 'sync' })
+  watch(currentSession, (v) => persistCurrentSession(v), { deep: true, flush: 'sync' })
 
   if (import.meta.client) {
     window.addEventListener('storage', (e: StorageEvent) => {
-      if (e.key !== ERROR_LOGS_STORAGE_KEY) return
-      applyStorageEventPayload(e.newValue)
+      if (e.key === ERROR_LOGS_STORAGE_KEY) {
+        applyErrorLogsStorageEvent(e.newValue)
+        return
+      }
+      if (e.key === HISTORY_SESSIONS_KEY) {
+        historySessions.value = parseHistorySessions(e.newValue)
+        return
+      }
+      if (e.key === CURRENT_SESSION_KEY) {
+        currentSession.value = parseCurrentSession(e.newValue)
+      }
     })
   }
 })

@@ -339,7 +339,14 @@ import {
 } from '~/utils/diagnosticEngine'
 import type { ErrorReviewCategory, WordEntry } from '~/composables/useWordStore'
 
-const { words, upsertErrorLog } = useWordStore()
+const {
+  words,
+  currentSession,
+  upsertErrorLog,
+  beginDictationSession,
+  completeCurrentDictationSession,
+  recordDictationSessionAnswer
+} = useWordStore()
 
 const currentIndex = ref(0)
 const answer = ref('')
@@ -513,6 +520,7 @@ function advanceAfterCorrect() {
   if (currentIndex.value >= list.length - 1) {
     feedback.value = null
     roundComplete.value = true
+    completeCurrentDictationSession()
     return
   }
 
@@ -532,6 +540,7 @@ function continueAfterWrong() {
 
   if (currentIndex.value >= list.length - 1) {
     roundComplete.value = true
+    completeCurrentDictationSession()
     return
   }
 
@@ -562,6 +571,7 @@ function submitAnswer() {
   answer.value = ''
 
   if (match) {
+    recordDictationSessionAnswer({ correct: true })
     // 不在此从复习池删词：听写中改对只表示本轮过关，错题仍应在 Review 专项巩固
     correctManualUnlocked.value = false
     correctManualUnlockTimer = setTimeout(() => {
@@ -575,13 +585,14 @@ function submitAnswer() {
   } else {
     if (category !== 'correct') {
       markWrongWordThisRound(w.word)
-      upsertErrorLog({
+      const errorLogId = upsertErrorLog({
         target: { ...w },
         wrongInput: raw,
         category: category as ErrorReviewCategory,
         source: 'dictation',
         recordedAt: new Date().toISOString()
       })
+      recordDictationSessionAnswer({ correct: false, errorLogId })
     }
     startWrongRevealPhase()
   }
@@ -597,13 +608,21 @@ function restartRound() {
   currentIndex.value = 0
   answer.value = ''
   wrongWordKeysThisRound.value = new Set()
-  nextTick(() => inputRef.value?.focus())
+  nextTick(() => {
+    inputRef.value?.focus()
+    const n = words.value.length
+    if (n > 0) beginDictationSession(n)
+  })
 }
 
 onMounted(() => {
   if (import.meta.client) {
     window.addEventListener('keydown', onGlobalEnter)
   }
+  nextTick(() => {
+    const n = words.value.length
+    if (n > 0 && !currentSession.value) beginDictationSession(n)
+  })
 })
 
 onBeforeUnmount(() => {

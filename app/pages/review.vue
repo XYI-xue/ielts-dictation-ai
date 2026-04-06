@@ -178,9 +178,65 @@
             <span class="mt-1 block text-violet-100/85">{{ reviewHint(log.category) }}</span>
           </p>
 
+          <div class="mt-5 border-t border-zinc-800/80 pt-5">
+            <p class="text-xs font-medium text-zinc-400">
+              步骤 1：点击播放<strong class="text-zinc-300">仅目标词</strong>的读音；结合释义判断后，点选
+              <strong class="text-zinc-300">听写目标词</strong>或<strong class="text-zinc-300">你上次写的词</strong>（顺序随机，勿凭位置猜题）。
+            </p>
+            <button
+              type="button"
+              class="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-violet-500/40 bg-violet-950/35 py-3 text-sm font-medium text-violet-100 transition hover:border-violet-400/55 hover:bg-violet-900/40 sm:w-auto sm:px-8"
+              :aria-label="`播放目标词 ${log.target.word}`"
+              @click="speakWord(log.target.word)"
+            >
+              <span class="text-base" aria-hidden="true">▶</span>
+              播放目标词读音
+            </button>
+          </div>
+
+          <div class="mt-5 grid gap-3 sm:grid-cols-2 sm:gap-4">
+            <div
+              v-for="(opt, idx) in getSoundQuizOptions(log)"
+              :key="`${log.id}-${idx}`"
+              class="flex flex-col justify-between gap-4 rounded-xl border border-zinc-700/80 bg-zinc-950/55 p-5 ring-1 ring-inset ring-white/[0.03]"
+            >
+              <div class="space-y-2 text-center">
+                <p class="font-mono text-2xl font-semibold tracking-tight text-zinc-50 sm:text-3xl">
+                  {{ opt.word }}
+                </p>
+                <p
+                  v-if="curriculumTranslationHint(opt.word)"
+                  class="text-sm leading-snug text-zinc-400"
+                >
+                  {{ curriculumTranslationHint(opt.word) }}
+                </p>
+              </div>
+              <button
+                type="button"
+                class="w-full rounded-lg py-3 text-sm font-semibold transition"
+                :class="
+                  opt.isTarget
+                    ? 'bg-violet-600 text-white hover:bg-violet-500'
+                    : 'bg-zinc-700 text-zinc-100 hover:bg-zinc-600'
+                "
+                :disabled="soundQuizStates[log.id]?.solved"
+                @click="pickSoundQuizOption(log, opt.isTarget)"
+              >
+                我选这个
+              </button>
+            </div>
+          </div>
+
+          <p v-if="soundQuizStates[log.id]?.hint === 'wrong'" class="mt-3 text-sm font-medium text-rose-400/95">
+            不对，可再听一遍目标词读音，或换另一个选项。
+          </p>
+          <p v-if="soundQuizStates[log.id]?.solved" class="mt-3 text-sm font-medium text-emerald-400/95">
+            选对啦。下方可结合释义再默写巩固。
+          </p>
+
           <div class="relative my-4 flex items-center gap-3">
             <div class="h-px flex-1 bg-zinc-800" aria-hidden="true" />
-            <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">对比</span>
+            <span class="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-zinc-600">对照参考</span>
             <div class="h-px flex-1 bg-zinc-800" aria-hidden="true" />
           </div>
 
@@ -215,8 +271,17 @@
           </p>
 
           <div class="mt-5 border-t border-zinc-800/80 pt-4">
-            <p class="text-xs font-medium text-zinc-400">自测：合上书默写目标词（不计入移出池，仅供巩固）</p>
-            <form class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center" @submit.prevent="onSelfCheckSubmit(log)">
+            <p class="text-xs font-medium text-zinc-400">
+              步骤 2：自测默写目标词（不计入移出池，仅供巩固）
+              <span v-if="!soundQuizStates[log.id]?.solved" class="block pt-1 text-zinc-600">
+                请先完成上方「我选这个」二选一。
+              </span>
+            </p>
+            <form
+              class="mt-2 flex flex-col gap-2 sm:flex-row sm:items-center"
+              :class="{ 'pointer-events-none opacity-45': !soundQuizStates[log.id]?.solved }"
+              @submit.prevent="onSelfCheckSubmit(log)"
+            >
               <input
                 v-model="selfCheckStates[log.id].input"
                 type="text"
@@ -224,13 +289,15 @@
                 autocapitalize="off"
                 spellcheck="false"
                 placeholder="输入正确单词…"
-                class="min-w-0 flex-1 rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2.5 font-mono text-base text-zinc-100 placeholder:text-zinc-600 focus:border-violet-500/45 focus:outline-none focus:ring-1 focus:ring-violet-500/30"
+                :disabled="!soundQuizStates[log.id]?.solved"
+                class="min-w-0 flex-1 rounded-xl border border-zinc-800 bg-zinc-950/80 px-3 py-2.5 font-mono text-base text-zinc-100 placeholder:text-zinc-600 focus:border-violet-500/45 focus:outline-none focus:ring-1 focus:ring-violet-500/30 disabled:cursor-not-allowed"
                 @input="onSelfCheckInput(log.id)"
                 @keyup.enter.exact.prevent="onSelfCheckSubmit(log)"
               />
               <button
                 type="submit"
-                class="shrink-0 rounded-xl border border-violet-500/35 bg-violet-950/40 px-4 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-900/45"
+                :disabled="!soundQuizStates[log.id]?.solved"
+                class="shrink-0 rounded-xl border border-violet-500/35 bg-violet-950/40 px-4 py-2.5 text-sm font-medium text-violet-100 transition hover:bg-violet-900/45 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 检查
               </button>
@@ -365,7 +432,62 @@ const REVIEW_HINTS: Record<ErrorReviewCategory, string> = {
   completely_unknown: '与正确词差距较大，更像未掌握的生词。请连释义、例句一起记，再默写整词。'
 }
 
-const { errorLogs, removeErrorLog } = useWordStore()
+const { errorLogs, removeErrorLog, words } = useWordStore()
+
+type SoundQuizState = {
+  options: { word: string; isTarget: boolean }[]
+  solved: boolean
+  hint: 'wrong' | null
+}
+
+const soundQuizStates = reactive<Record<string, SoundQuizState>>({})
+
+function shuffleSoundOptions(target: string, wrongRaw: string) {
+  const u = wrongRaw.trim() || '（空）'
+  const opts = [
+    { word: target, isTarget: true as const },
+    { word: u, isTarget: false as const }
+  ]
+  for (let i = opts.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[opts[i], opts[j]] = [opts[j]!, opts[i]!]
+  }
+  return opts
+}
+
+function ensureSoundQuizState(log: ErrorLogEntry) {
+  if (log.category !== 'sound_alike') return
+  if (!soundQuizStates[log.id]) {
+    soundQuizStates[log.id] = {
+      options: shuffleSoundOptions(log.target.word, log.wrongInput ?? ''),
+      solved: false,
+      hint: null
+    }
+  }
+}
+
+function getSoundQuizOptions(log: ErrorLogEntry) {
+  ensureSoundQuizState(log)
+  return soundQuizStates[log.id]?.options ?? []
+}
+
+function pickSoundQuizOption(log: ErrorLogEntry, isTarget: boolean) {
+  ensureSoundQuizState(log)
+  const st = soundQuizStates[log.id]!
+  if (st.solved) return
+  if (isTarget) {
+    st.solved = true
+    st.hint = null
+  } else {
+    st.hint = 'wrong'
+  }
+}
+
+function curriculumTranslationHint(word: string): string | undefined {
+  const key = word.trim().toLowerCase()
+  if (!key || key === '（空）') return undefined
+  return words.value.find((w) => w.word.toLowerCase() === key)?.translation
+}
 
 /** 与听写结果对齐的复习条目（排除未来其它来源且带显式 source 的数据） */
 const dictationReviewLogs = computed(() => errorLogs.value.filter(isDictationReviewEntry))
@@ -545,12 +667,19 @@ function onSelfCheckSubmit(log: ErrorLogEntry) {
 watch(
   dictationReviewLogs,
   (logs) => {
+    const ids = new Set(logs.map((l) => l.id))
+    for (const id of Object.keys(soundQuizStates)) {
+      if (!ids.has(id)) delete soundQuizStates[id]
+    }
     for (const log of logs) {
       if (log.category === 'typo' || log.category === 'morphological') {
         ensureSpellState(log.id)
       }
       if (log.category === 'sound_alike' || log.category === 'completely_unknown') {
         ensureSelfCheckState(log.id)
+      }
+      if (log.category === 'sound_alike') {
+        ensureSoundQuizState(log)
       }
     }
   },
