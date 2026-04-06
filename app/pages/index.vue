@@ -19,6 +19,30 @@
       </div>
     </header>
 
+
+    <!-- CTA -->
+    <div class="flex flex-wrap items-center gap-3">
+      <NuxtLink
+        to="/dictation"
+        class="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-950/40 transition hover:bg-violet-500"
+      >
+        开始听写
+        <span aria-hidden="true">→</span>
+      </NuxtLink>
+      <NuxtLink
+        to="/review"
+        class="inline-flex items-center gap-2 rounded-xl border border-zinc-600 bg-zinc-900/80 px-6 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-800"
+      >
+        专项复习
+      </NuxtLink>
+      <NuxtLink
+        to="/typing-practice"
+        class="inline-flex items-center gap-2 rounded-xl border border-zinc-800 bg-transparent px-6 py-3 text-sm font-medium text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200"
+      >
+        打字练习
+      </NuxtLink>
+    </div>
+
     <!-- 概览指标 -->
     <section class="grid gap-4 sm:grid-cols-3">
       <div
@@ -177,29 +201,7 @@
         </template>
       </div>
     </section>
-
-    <!-- CTA -->
-    <div class="flex flex-wrap items-center gap-3">
-      <NuxtLink
-        to="/dictation"
-        class="inline-flex items-center gap-2 rounded-xl bg-violet-600 px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-violet-950/40 transition hover:bg-violet-500"
-      >
-        开始听写
-        <span aria-hidden="true">→</span>
-      </NuxtLink>
-      <NuxtLink
-        to="/review"
-        class="inline-flex items-center gap-2 rounded-xl border border-zinc-600 bg-zinc-900/80 px-6 py-3 text-sm font-semibold text-zinc-100 transition hover:border-zinc-500 hover:bg-zinc-800"
-      >
-        专项复习
-      </NuxtLink>
-      <NuxtLink
-        to="/typing-practice"
-        class="inline-flex items-center gap-2 rounded-xl border border-zinc-800 bg-transparent px-6 py-3 text-sm font-medium text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200"
-      >
-        打字练习
-      </NuxtLink>
-    </div>
+    
   </div>
 </template>
 

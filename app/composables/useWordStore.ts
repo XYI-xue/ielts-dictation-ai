@@ -173,6 +173,8 @@ export function useWordStore() {
 
   /**
    * 开始新一轮听写：若存在未归档的当前 Session，先以 `ongoing` 追加到 historySessions。
+   * 听写页可在客户端维护「队尾重排队列」：答错会把该词下标追加到本轮队尾，直到每个词各拼对一次后归档；
+   * `wordsCount` 为本轮队列长度（用户设置的每轮题量，可与词表长度不同；不足时循环抽词），`correctCount` 为答对提交次数。
    */
   function beginDictationSession(wordsCount: number) {
     if (wordsCount <= 0) return
@@ -193,6 +195,14 @@ export function useWordStore() {
   /** 听写整轮正常完成时调用：当前 Session 以 `completed` 写入 historySessions */
   function completeCurrentDictationSession() {
     archiveCurrentSession('completed')
+  }
+
+  /** 本轮进行中调整「每轮题量」时同步 Session 的 wordsCount，不重置 correctCount */
+  function setCurrentDictationSessionWordCount(wordsCount: number) {
+    const cur = currentSession.value
+    if (!cur || wordsCount <= 0) return
+    cur.wordsCount = wordsCount
+    syncSessionsToStorage()
   }
 
   /** 单次提交结果：答对增加 correctCount；答错写入 errorIds（按错题 id 去重） */
@@ -251,6 +261,7 @@ export function useWordStore() {
     upsertErrorLog,
     beginDictationSession,
     completeCurrentDictationSession,
+    setCurrentDictationSessionWordCount,
     recordDictationSessionAnswer,
     recentSessions,
     errorTypeDistribution
