@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [v5.1.0] - 2026-04-06
+
+### Added
+- `app/composables/useTypingLiveStats.ts`：语境打字页实时 WPM / 准确率 / 用时同步至 Dashboard（`app/pages/index.vue`）同屏展示。
+
+### Changed
+- **听写页（`dictation.vue`）**：压缩页头与说明；进度与题量并入主卡片顶栏；加粗进度条；听写区为主视觉；答错/答对阶段细倒计时条；反馈卡片与紫灰主题更统一；「上次输入」条结构化展示。
+- **专项复习（`review.vue`）**：单题卡片流 + 顶栏进度条与上一题/下一题；精简文案与布局；Tab 使用 `selectTab` 显式切换并以 `reviewContentMode` 对齐题目类型与进度样式，修复板块与内容不同步问题。
+- **语境作文（`typing.vue`）**：将实时统计写入 `useTypingLiveStats` 供首页汇总。
+
+### Notes
+- 至此听写、复习、语境作文与 Dashboard 主线已贯通，可作为当前阶段的稳定发行版。
+
 ## [v5.0.0] - 2026-04-07
 
 ### Added

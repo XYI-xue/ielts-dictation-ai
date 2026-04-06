@@ -44,7 +44,27 @@
     </div>
 
     <!-- 概览指标 -->
-    <section class="grid gap-4 sm:grid-cols-3">
+    <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div
+        class="rounded-2xl border border-zinc-800/90 bg-zinc-900/50 p-5 ring-1 ring-inset ring-white/[0.04]"
+      >
+        <p class="text-[10px] font-semibold uppercase tracking-wider text-zinc-500">语境打字 · 实时</p>
+        <p class="mt-1 text-xs text-zinc-600">与语境作文页悬浮统计同步</p>
+        <dl class="mt-3 space-y-1.5 text-sm">
+          <div class="flex justify-between gap-2 tabular-nums">
+            <dt class="text-zinc-500">Time</dt>
+            <dd class="font-medium text-zinc-100">{{ typingTime }}</dd>
+          </div>
+          <div class="flex justify-between gap-2 tabular-nums">
+            <dt class="text-zinc-500">WPM</dt>
+            <dd class="font-medium text-violet-300">{{ typingWpm }}</dd>
+          </div>
+          <div class="flex justify-between gap-2 tabular-nums">
+            <dt class="text-zinc-500">Accuracy</dt>
+            <dd class="font-medium text-emerald-300/90">{{ typingAccuracy }}%</dd>
+          </div>
+        </dl>
+      </div>
       <div
         class="rounded-2xl border border-zinc-800/90 bg-zinc-900/50 p-5 ring-1 ring-inset ring-white/[0.04]"
       >
@@ -225,6 +245,8 @@ function categoryColor(key: ErrorReviewCategory): string {
 }
 
 const { recentSessions, errorTypeDistribution, errorLogs, currentSession } = useWordStore()
+const { wpm: typingWpm, accuracyPct: typingAccuracy, timeFormatted: typingTime } =
+  useTypingLiveStats()
 
 const reviewPoolCount = computed(() => errorLogs.value.filter(isDictationReviewEntry).length)
 

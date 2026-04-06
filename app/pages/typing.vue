@@ -264,6 +264,7 @@ interface GeneratedPayload {
 }
 
 const { historySessions, currentSession, errorLogs } = useWordStore()
+const typingLiveStats = useTypingLiveStats()
 
 const selectedSessionId = ref<string | null>(null)
 const generatedPayload = ref<GeneratedPayload | null>(null)
@@ -569,6 +570,21 @@ const selectedWrongWords = computed(() => {
   const s = selectedSession.value
   if (!s) return []
   return sessionWrongWords(s)
+})
+
+watchEffect(() => {
+  const hasPractice =
+    !!generatedPayload.value?.english_essay && plainPracticeText.value.length > 0
+  if (!hasPractice) {
+    typingLiveStats.reset()
+    return
+  }
+  statsTick.value
+  typingLiveStats.sync({
+    wpm: liveWpm.value,
+    accuracyPct: liveAccuracy.value,
+    timeFormatted: formattedElapsed.value
+  })
 })
 
 watch(
