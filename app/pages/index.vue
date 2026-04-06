@@ -36,10 +36,10 @@
         专项复习
       </NuxtLink>
       <NuxtLink
-        to="/typing-practice"
+        to="/typing"
         class="inline-flex items-center gap-2 rounded-xl border border-zinc-800 bg-transparent px-6 py-3 text-sm font-medium text-zinc-400 transition hover:border-zinc-600 hover:text-zinc-200"
       >
-        打字练习
+        语境作文
       </NuxtLink>
     </div>
 

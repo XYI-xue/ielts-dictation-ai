@@ -35,10 +35,10 @@
 const route = useRoute()
 
 const navItems = [
-  { label: 'Dashboard', to: '/' },
-  { label: 'Dictation', to: '/dictation' },
-  { label: 'Review', to: '/review' },
-  { label: 'Typing Practice', to: '/typing-practice' }
+  { label: '统计面板', to: '/' },
+  { label: '听写检测', to: '/dictation' },
+  { label: '专项复习', to: '/review' },
+  { label: '语境作文', to: '/typing' }
 ] as const
 
 function linkClass(path: string) {
